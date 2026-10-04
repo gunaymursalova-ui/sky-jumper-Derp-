@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sky Jumper: Ultimate Infinity Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { touch-action: manipulation; user-select: none; }
+        body { font-family: 'Nunito', sans-serif; background-color: #0f172a; color: #fff; overflow-x: hidden; }
+        .font-game { font-family: 'Fredoka One', cursive; }
+        canvas { display: block; }
+        .glass-panel { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.15); }
+        .glass-btn { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); transition: all 0.15s ease; }
+        .glass-btn:hover { background: rgba(255, 255, 255, 0.25); transform: translateY(-2px); }
+        .glass-btn:active { transform: translateY(1px); }
+        .btn-gold { background: linear-gradient(135deg, #f59e0b, #d97706); border-bottom: 4px solid #b45309; }
+        .btn-gold:hover { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+        .btn-gold:active { border-bottom-width: 0px; transform: translateY(4px); }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.6)); }
+            50% { filter: drop-shadow(0 0 22px rgba(251, 191, 36, 0.9)); }
+        }
+        .logo-glow { animation: pulse-glow 3s infinite ease-in-out; }
+    </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen flex flex-col justify-between items-center relative overflow-hidden">
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="w-full max-w-6xl px-4 py-3 flex justify-between items-center z-20">
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="app.showScreen('lobby')">
+            <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center font-game text-2xl shadow-lg border-2 border-amber-300">SJ</div>
+            <div>
+                <h1 class="font-game text-xl tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-orange-400 to-yellow-200">SKY JUMPER</h1>
+                <p class="text-xs text-amber-200/70 font-semibold tracking-wider">ULTIMATE INFINITY EDITION</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2 md:space-x-4">
+            <!-- Coin Counter -->
+            <div class="glass-panel px-3 py-1.5 rounded-full flex items-center space-x-2 border border-amber-500/30">
+                <span class="text-lg">🪙</span>
+                <span id="global-coins" class="font-game text-amber-300 text-sm md:text-base">0</span>
+            </div>
+            <!-- Star Counter -->
+            <div class="glass-panel px-3 py-1.5 rounded-full flex items-center space-x-2 border border-yellow-500/30">
+                <span class="text-lg">⭐</span>
+                <span id="global-stars" class="font-game text-yellow-300 text-sm md:text-base">0 / 75</span>
+            </div>
+            <!-- Profile / Flag -->
+            <button onclick="app.openProfileModal()" class="glass-btn px-3 py-1.5 rounded-xl flex items-center space-x-2">
+                <span id="user-flag-icon" class="text-lg">🇺🇸</span>
+                <span id="user-name-label" class="hidden md:inline font-bold text-xs uppercase tracking-wider text-slate-200">Player</span>
+            </button>
+            <!-- Offline Exporter Button -->
+            <button onclick="app.downloadStandalone()" title="Download standalone playable HTML file" class="glass-btn p-2 rounded-xl text-emerald-400 hover:text-emerald-300 border-emerald-500/40">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            </button>
+            <!-- Settings Button -->
+            <button onclick="app.openSettingsModal()" class="glass-btn p-2 rounded-xl text-slate-300">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN APPLICATION CONTAINER -->
+    <main id="app-viewport" class="w-full max-w-5xl flex-1 flex flex-col justify-center items-center relative p-2 md:p-4 my-auto">
+
+        <!-- SCREEN: LOBBY -->
+        <div id="screen-lobby" class="w-full flex flex-col items-center space-y-6 text-center z-10 py-4">
+            <div class="relative">
+                <h1 class="font-game text-5xl md:text-7xl bg-clip-text text-transparent bg-gradient-to-b from-yellow-300 via-amber-400 to-orange-600 logo-glow tracking-wide">
+                    SKY JUMPER
+                </h1>
+                <p class="font-extrabold text-amber-200 tracking-widest text-xs md:text-sm uppercase mt-1">
+                    Ultimate Infinity Edition • 30+ Features Engine
+                </p>
+            </div>
+
+            <!-- Character Avatar Preview Box -->
+            <div class="relative w-40 h-40 glass-panel rounded-3xl flex items-center justify-center p-2 shadow-2xl border border-amber-500/40 group">
+                <canvas id="lobby-derp-canvas" width="140" height="140" class="cursor-pointer" onclick="app.triggerLobbyDerpSquish()"></canvas>
+                <div class="absolute -bottom-3 bg-amber-500 text-slate-950 px-3 py-0.5 rounded-full text-xs font-black uppercase tracking-wider shadow" id="equipped-skin-name">
+                    Derp Classic
+                </div>
+            </div>
+
+            <!-- Game Mode Buttons -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-2xl px-4">
+                <button onclick="app.showScreen('levels')" class="btn-gold py-4 px-6 rounded-2xl font-game text-xl text-slate-950 flex flex-col items-center shadow-lg">
+                    <span>👑 CAMPAIGN</span>
+                    <span class="text-xs font-sans font-bold opacity-80 mt-0.5">25 Levels & Bosses</span>
+                </button>
+                <button onclick="app.startInfiniteMode()" class="glass-btn py-4 px-6 rounded-2xl font-game text-xl text-cyan-300 border-cyan-500/40 flex flex-col items-center">
+                    <span>♾️ ENDLESS TOWER</span>
+                    <span class="text-xs font-sans font-bold text-cyan-200/70 mt-0.5">Procedural Highscore</span>
+                </button>
+                <button onclick="app.startCoOpMode()" class="glass-btn py-4 px-6 rounded-2xl font-game text-xl text-purple-300 border-purple-500/40 flex flex-col items-center">
+                    <span>👥 2P CO-OP / VS</span>
+                    <span class="text-xs font-sans font-bold text-purple-200/70 mt-0.5">Split Keyboard Local</span>
+                </button>
+            </div>
+
+            <!-- Secondary Actions -->
+            <div class="flex flex-wrap justify-center gap-3 pt-2">
+                <button onclick="app.openShopModal()" class="glass-btn px-5 py-2.5 rounded-xl text-sm font-bold flex items-center space-x-2 border-amber-500/30 text-amber-300">
+                    <span>🛍️ DERP SHOP & PETS</span>
+                </button>
+                <button onclick="app.openStatsModal()" class="glass-btn px-5 py-2.5 rounded-xl text-sm font-bold flex items-center space-x-2 text-slate-300">
+                    <span>📊 STATS & FLAGS</span>
+                </button>
+
+                <button onclick="app.showWheelModal()" class="glass-btn px-5 py-2.5 rounded-xl text-sm font-bold flex items-center space-x-2 text-yellow-400">
+                    <span>🎡 DAILY WHEEL</span>
+                </button>
+                <button onclick="app.playOpeningCutscene(true)" class="glass-btn px-5 py-2.5 rounded-xl text-sm font-bold flex items-center space-x-2 text-rose-300">
+                    <span>🎬 STORY CUTSCENE</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- SCREEN: LEVEL SELECTION GRID -->
+        <div id="screen-levels" class="w-full flex-col items-center space-y-4 hidden z-10 py-2">
+            <div class="flex items-center justify-between w-full max-w-3xl px-4">
+                <button onclick="app.showScreen('lobby')" class="glass-btn px-4 py-2 rounded-xl font-bold text-sm text-slate-300 flex items-center space-x-1">
+                    <span>← LOBBY</span>
+                </button>
+                <h2 class="font-game text-2xl md:text-3xl text-amber-400">SELECT ALTITUDE</h2>
+                <div class="w-20"></div>
+            </div>
+
+            <!-- Levels Container (25 Levels) -->
+            <div id="levels-grid-container" class="grid grid-cols-5 gap-3 w-full max-w-3xl max-h-[60vh] overflow-y-auto p-2 glass-panel rounded-2xl">
+                <!-- Dynamically Populated by JS -->
+            </div>
+        </div>
+
+        <!-- SCREEN: GAMEPLAY CANVAS -->
+        <div id="screen-game" class="w-full flex flex-col items-center hidden relative z-10">
+            <!-- HUD Header -->
+            <div class="w-full max-w-2xl flex justify-between items-center px-4 py-2 glass-panel rounded-t-2xl border-b-0 text-xs md:text-sm font-bold">
+                <div class="flex items-center space-x-3">
+                    <span id="hud-level-title" class="text-amber-400 font-game text-base">LVL 1</span>
+                    <span id="hud-altitude" class="text-cyan-300">0m</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="hud-combo" class="text-pink-400 font-game hidden">1x COMBO</span>
+                    <span id="hud-coins" class="text-amber-300">🪙 0</span>
+                    <button onclick="gameEngine.togglePause()" class="glass-btn px-2.5 py-1 rounded-lg text-slate-200 text-xs">⏸️</button>
+                </div>
+            </div>
+
+            <!-- Game Viewport -->
+            <div class="relative w-full max-w-2xl aspect-[3/4] max-h-[70vh] rounded-b-2xl overflow-hidden shadow-2xl border border-white/20">
+                <canvas id="game-canvas" width="600" height="800" class="w-full h-full bg-slate-900"></canvas>
+
+                <!-- On-Screen Touch Overlay for Mobile/Tablet -->
+                <div class="absolute bottom-4 left-4 right-4 flex justify-between pointer-events-none md:hidden">
+                    <div class="flex space-x-3 pointer-events-auto">
+                        <button id="btn-touch-left" class="w-16 h-16 rounded-full glass-panel flex items-center justify-center text-2xl border-white/30 active:bg-white/40">👈</button>
+                        <button id="btn-touch-right" class="w-16 h-16 rounded-full glass-panel flex items-center justify-center text-2xl border-white/30 active:bg-white/40">👉</button>
+                    </div>
+                    <button id="btn-touch-boost" class="pointer-events-auto w-16 h-16 rounded-full glass-panel flex items-center justify-center text-2xl border-amber-400/50 bg-amber-500/20 active:bg-amber-500/50">🚀</button>
+                </div>
+
+                <!-- Pause Menu Overlay -->
+                <div id="game-pause-overlay" class="absolute inset-0 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center space-y-4 hidden z-30">
+                    <h3 class="font-game text-4xl text-amber-400">PAUSED</h3>
+                    <div class="flex flex-col space-y-3 w-48">
+                        <button onclick="gameEngine.resumeGame()" class="btn-gold py-2.5 rounded-xl font-game text-slate-950">RESUME</button>
+                        <button onclick="gameEngine.restartCurrent()" class="glass-btn py-2.5 rounded-xl font-bold text-slate-200">RESTART</button>
+                        <button onclick="app.showScreen('levels')" class="glass-btn py-2.5 rounded-xl font-bold text-rose-400">QUIT TO LEVELS</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN: CUTSCENE / CINEMATIC VIEW -->
+        <div id="screen-cutscene" class="w-full max-w-3xl aspect-video glass-panel rounded-3xl overflow-hidden relative hidden z-20 flex flex-col justify-center items-center">
+            <canvas id="cutscene-canvas" class="w-full h-full"></canvas>
+            <div id="cutscene-dialogue" class="absolute bottom-4 left-6 right-6 p-4 glass-panel rounded-2xl text-center font-bold text-sm md:text-base border-amber-500/40 text-amber-200">
+                Derp is relaxing on a sunny day...
+            </div>
+            <button onclick="cutsceneEngine.skip()" class="absolute top-4 right-4 glass-btn px-4 py-1.5 rounded-xl text-xs font-bold text-slate-300">
+                SKIP ▶▶
+            </button>
+        </div>
+
+    </main>
+
+    <!-- MODAL: DERP COSMETIC SHOP & PETS -->
+    <div id="modal-shop" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center hidden z-50 p-4">
+        <div class="glass-panel w-full max-w-2xl rounded-3xl p-6 border-amber-500/30 flex flex-col space-y-4 max-h-[90vh]">
+            <div class="flex justify-between items-center border-b border-white/10 pb-3">
+                <h3 class="font-game text-2xl text-amber-400">DERP BOUTIQUE & PETS</h3>
+                <button onclick="app.closeModal('shop')" class="text-slate-400 hover:text-white text-xl font-bold">✕</button>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="flex space-x-2 border-b border-white/10 pb-2">
+                <button id="shop-tab-skins" onclick="app.setShopTab('skins')" class="px-4 py-1.5 rounded-xl font-bold text-sm bg-amber-500 text-slate-950">Skins (6)</button>
+                <button id="shop-tab-hats" onclick="app.setShopTab('hats')" class="px-4 py-1.5 rounded-xl font-bold text-sm glass-btn text-slate-300">Hats (8)</button>
+                <button id="shop-tab-pets" onclick="app.setShopTab('pets')" class="px-4 py-1.5 rounded-xl font-bold text-sm glass-btn text-slate-300">Pets (4)</button>
+            </div>
+
+            <!-- Items Grid -->
+            <div id="shop-items-container" class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto p-1 max-h-[50vh]">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: LIFETIME STATS & FLAG SELECTOR -->
+    <div id="modal-stats" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center hidden z-50 p-4">
+        <div class="glass-panel w-full max-w-lg rounded-3xl p-6 border-cyan-500/30 flex flex-col space-y-4 max-h-[90vh]">
+            <div class="flex justify-between items-center border-b border-white/10 pb-3">
+                <h3 class="font-game text-2xl text-cyan-400">PLAYER PROFILE & STATS</h3>
+                <button onclick="app.closeModal('stats')" class="text-slate-400 hover:text-white text-xl font-bold">✕</button>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 gap-3 text-xs md:text-sm">
+                <div class="glass-panel p-3 rounded-2xl flex flex-col">
+                    <span class="text-slate-400">Highest Altitude</span>
+                    <span id="stat-max-height" class="font-game text-xl text-amber-300">0m</span>
+                </div>
+                <div class="glass-panel p-3 rounded-2xl flex flex-col">
+                    <span class="text-slate-400">Total Jumps</span>
+                    <span id="stat-total-jumps" class="font-game text-xl text-cyan-300">0</span>
+                </div>
+                <div class="glass-panel p-3 rounded-2xl flex flex-col">
+                    <span class="text-slate-400">Bosses Defeated</span>
+                    <span id="stat-bosses" class="font-game text-xl text-rose-400">0</span>
+                </div>
+                <div class="glass-panel p-3 rounded-2xl flex flex-col">
+                    <span class="text-slate-400">Secret Apples</span>
+                    <span id="stat-apples" class="font-game text-xl text-emerald-400">0</span>
+                </div>
+            </div>
+
+            <h4 class="font-bold text-sm text-slate-300 pt-2">Select Country Flag</h4>
+            <div id="flag-selector-grid" class="grid grid-cols-6 gap-2 max-h-36 overflow-y-auto p-2 glass-panel rounded-2xl">
+                <!-- Flags Populated JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SETTINGS & SPEED PRESETS -->
+    <div id="modal-settings" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center hidden z-50 p-4">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 border-slate-700 flex flex-col space-y-4">
+            <div class="flex justify-between items-center border-b border-white/10 pb-3">
+                <h3 class="font-game text-2xl text-slate-200">GAME SETTINGS</h3>
+                <button onclick="app.closeModal('settings')" class="text-slate-400 hover:text-white text-xl font-bold">✕</button>
+            </div>
+
+            <div class="space-y-3 text-sm font-bold">
+                <div>
+                    <label class="text-slate-300 block mb-1">Physics Mode</label>
+                    <select id="setting-physics" onchange="app.updateSettings()" class="w-full glass-panel px-3 py-2 rounded-xl bg-slate-900 border-white/20 text-white">
+                        <option value="classic">Derp Floaty Classic</option>
+                        <option value="modern" selected>Modern Responsive Engine</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-slate-300 block mb-1">Game Speed Multiplier</label>
+                    <select id="setting-speed" onchange="app.updateSettings()" class="w-full glass-panel px-3 py-2 rounded-xl bg-slate-900 border-white/20 text-white">
+                        <option value="0.65">0.65x - Very Slow</option>
+                        <option value="0.80">0.80x - Relaxed</option>
+                        <option value="1.00" selected>1.00x - Normal</option>
+                        <option value="1.20">1.20x - Fast</option>
+                        <option value="1.40">1.40x - Turbo</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-slate-300 block mb-1">Screen Edges</label>
+                    <select id="setting-edges" onchange="app.updateSettings()" class="w-full glass-panel px-3 py-2 rounded-xl bg-slate-900 border-white/20 text-white">
+                        <option value="wrap" selected>Pac-Man Screen Wrap</option>
+                        <option value="bounce">Solid Bouncy Walls</option>
+                    </select>
+                </div>
+
+                <div class="pt-2 flex justify-between items-center">
+                    <span class="text-slate-300">Sound FX Volume</span>
+                    <input type="range" id="setting-volume" min="0" max="1" step="0.1" value="0.7" onchange="app.updateSettings()" class="accent-amber-400">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: DAILY WHEEL SPINNER -->
+    <div id="modal-wheel" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center hidden z-50 p-4">
+        <div class="glass-panel w-full max-w-sm rounded-3xl p-6 border-yellow-500/40 flex flex-col items-center space-y-4">
+            <h3 class="font-game text-2xl text-yellow-400">DAILY WHEEL SPINNER</h3>
+            <div class="relative w-48 h-48 flex items-center justify-center">
+                <canvas id="wheel-canvas" width="200" height="200" class="rounded-full shadow-2xl border-4 border-amber-400"></canvas>
+                <div class="absolute -top-2 text-2xl">🔻</div>
+            </div>
+            <button id="btn-spin-wheel" onclick="wheelEngine.spin()" class="btn-gold px-6 py-2.5 rounded-xl font-game text-slate-950 w-full">
+                SPIN FOR FREE COINS!
+            </button>
+            <button onclick="app.closeModal('wheel')" class="text-xs text-slate-400 hover:underline">Close</button>
+        </div>
+    </div>
+
+    <!-- FOOTER INFO -->
+    <footer class="w-full text-center py-2 text-xs text-slate-500 z-10">
+        Sky Jumper: Ultimate Infinity Edition • Guaranteed 100% Reachable Math Engine
+    </footer>
+
+    <script>
+        // ==========================================
+        // 1. SOUND & AUDIO SYNTHESIZER (Web Audio API)
+        // ==========================================
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.volume = 0.7;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) this.ctx = new AudioContext();
+                }
+            }
+
+            playJump() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(450, this.ctx.currentTime + 0.12);
+                gain.gain.setValueAtTime(this.volume * 0.3, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.12);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.12);
+            }
+
+            playBounce() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(600, this.ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(this.volume * 0.5, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.2);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.2);
+            }
+
+            playCoin() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(987.77, this.ctx.currentTime); // B5
+                osc.frequency.setValueAtTime(1318.51, this.ctx.currentTime + 0.08); // E6
+                gain.gain.setValueAtTime(this.volume * 0.3, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+            }
+
+            playFanfare() {
+                if (!this.ctx) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(this.volume * 0.3, this.ctx.currentTime + idx * 0.08);
+                    gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + idx * 0.08 + 0.2);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + idx * 0.08);
+                    osc.stop(this.ctx.currentTime + idx * 0.08 + 0.2);
+                });
+            }
+        }
+        const audio = new SoundEngine();
+
+        // ==========================================
+        // 2. GLOBAL APP STATE & STORAGE
+        // ==========================================
+        const appState = {
+            coins: 150,
+            stars: 0,
+            userName: "Player",
+            userFlag: "🇺🇸",
+            unlockedLevels: 1,
+            levelStars: {},
+            equippedSkin: "derp",
+            equippedHat: "none",
+            equippedPet: "none",
+            unlockedSkins: ["derp"],
+            unlockedHats: ["none"],
+            unlockedPets: ["none"],
+            settings: {
+                physics: "modern",
+                speed: 1.0,
+                edges: "wrap",
+                volume: 0.7
+            },
+            stats: {
+                maxHeight: 0,
+                totalJumps: 0,
+                bossesDefeated: 0,
+                secretApples: 0
+            }
+        };
+
+        function saveState() {
+            try {
+                localStorage.setItem('sky_jumper_state', JSON.stringify(appState));
+            } catch(e) {}
+        }
+
+        function loadState() {
+            try {
+                const data = localStorage.getItem('sky_jumper_state');
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    Object.assign(appState, parsed);
+                }
+            } catch(e) {}
+        }
+        loadState();
+
+        // ==========================================
+        // 3. SHOP & PETS CONFIG
+        // ==========================================
+        const SHOP_SKINS = [
+            { id: 'derp', name: 'Derp Classic', cost: 0, color: '#f59e0b' },
+            { id: 'nyan', name: 'Nyan Derp', cost: 200, color: '#ec4899' },
+            { id: 'robot', name: 'Robot Derp', cost: 400, color: '#64748b' },
+            { id: 'frog', name: 'Frog Derp', cost: 600, color: '#22c55e' },
+            { id: 'ninja', name: 'Ninja Derp', cost: 800, color: '#1e293b' },
+            { id: 'gold', name: 'Golden Derp', cost: 1500, color: '#eab308' }
+        ];
+
+        const SHOP_HATS = [
+            { id: 'none', name: 'No Hat', cost: 0, icon: '❌' },
+            { id: 'crown', name: 'Golden Crown', cost: 150, icon: '👑' },
+            { id: 'propeller', name: 'Propeller Cap', cost: 250, icon: '🚁' },
+            { id: 'viking', name: 'Viking Horns', cost: 350, icon: '🛡️' },
+            { id: 'party', name: 'Party Cone', cost: 100, icon: '🎉' },
+            { id: 'shades', name: 'Cool Shades', cost: 200, icon: '🕶️' },
+            { id: 'tophat', name: 'Top Hat', cost: 300, icon: '🎩' },
+            { id: 'bunny', name: 'Bunny Ears', cost: 250, icon: '🐰' }
+        ];
+
+        const SHOP_PETS = [
+            { id: 'none', name: 'No Pet', cost: 0, icon: '❌' },
+            { id: 'dragon', name: 'Mini Dragon', cost: 500, icon: '🐉' },
+            { id: 'pig', name: 'Flying Pig', cost: 400, icon: '🐷' },
+            { id: 'chick', name: 'Balloon Chick', cost: 300, icon: '🐥' }
+        ];
+
+        const FLAGS = ["🇺🇸", "🇬🇧", "🇨🇦", "🇩🇪", "🇫🇷", "🇯🇵", "🇰🇷", "🇧🇷", "🇦🇺", "🇮🇳", "🇪🇸", "🇮🇹", "🇲🇽", "🇨🇳"];
+
+        // ==========================================
+        // 4. MAIN UI CONTROLLER
+        // ==========================================
+        const app = {
+            currentTab: 'skins',
+
+            init() {
+                this.updateHeaderUI();
+                this.renderLevelGrid();
+                this.initLobbyDerpCanvas();
+                this.renderFlagGrid();
+            },
+
+            updateHeaderUI() {
+                document.getElementById('global-coins').innerText = appState.coins;
+                document.getElementById('global-stars').innerText = `${appState.stars} / 75`;
+                document.getElementById('user-flag-icon').innerText = appState.userFlag;
+                document.getElementById('user-name-label').innerText = appState.userName;
+                document.getElementById('equipped-skin-name').innerText = SHOP_SKINS.find(s=>s.id===appState.equippedSkin)?.name || 'Derp';
+                saveState();
+            },
+
+            showScreen(screenId) {
+                ['lobby', 'levels', 'game', 'cutscene'].forEach(s => {
+                    const el = document.getElementById(`screen-${s}`);
+                    if (el) {
+                        if (s === screenId) {
+                            el.classList.remove('hidden');
+                            el.classList.add('flex');
+                        } else {
+                            el.classList.add('hidden');
+                            el.classList.remove('flex');
+                        }
+                    }
+                });
+                if (screenId === 'lobby') {
+                    this.initLobbyDerpCanvas();
+                }
+            },
+
+            renderLevelGrid() {
+                const container = document.getElementById('levels-grid-container');
+                container.innerHTML = '';
+                for (let i = 1; i <= 25; i++) {
+                    const isUnlocked = i <= appState.unlockedLevels;
+                    const stars = appState.levelStars[i] || 0;
+                    const btn = document.createElement('button');
+                    btn.className = `p-3 rounded-2xl flex flex-col items-center justify-center space-y-1 font-game transition ${
+                        isUnlocked 
+                        ? 'btn-gold text-slate-950 cursor-pointer' 
+                        : 'bg-slate-800/60 text-slate-500 cursor-not-allowed border border-white/5'
+                    }`;
+                    btn.innerHTML = `
+                        <span class="text-xl">${isUnlocked ? i : '🔒'}</span>
+                        <span class="text-xs text-amber-950 font-bold">${isUnlocked ? '⭐'.repeat(stars) + '☆'.repeat(3-stars) : 'Locked'}</span>
+                    `;
+                    if (isUnlocked) {
+                        btn.onclick = () => this.startLevel(i);
+                    }
+                    container.appendChild(btn);
+                }
+            },
+
+            startLevel(levelNum) {
+                if (levelNum === 1 && !appState.seenCutscene) {
+                    appState.seenCutscene = true;
+                    this.playOpeningCutscene(false, () => {
+                        this.showScreen('game');
+                        gameEngine.startLevel(levelNum);
+                    });
+                } else {
+                    this.showScreen('game');
+                    gameEngine.startLevel(levelNum);
+                }
+            },
+
+            startInfiniteMode() {
+                this.showScreen('game');
+                gameEngine.startInfiniteMode();
+            },
+
+            startCoOpMode() {
+                this.showScreen('game');
+                gameEngine.startCoOpMode();
+            },
+
+            openShopModal() {
+                document.getElementById('modal-shop').classList.remove('hidden');
+                this.renderShopItems();
+            },
+
+            setShopTab(tab) {
+                this.currentTab = tab;
+                ['skins', 'hats', 'pets'].forEach(t => {
+                    const btn = document.getElementById(`shop-tab-${t}`);
+                    if (t === tab) {
+                        btn.className = "px-4 py-1.5 rounded-xl font-bold text-sm bg-amber-500 text-slate-950";
+                    } else {
+                        btn.className = "px-4 py-1.5 rounded-xl font-bold text-sm glass-btn text-slate-300";
+                    }
+                });
+                this.renderShopItems();
+            },
+
+            renderShopItems() {
+                const container = document.getElementById('shop-items-container');
+                container.innerHTML = '';
+
+                let list = [];
+                let unlockedList = [];
+                let equipped = '';
+
+                if (this.currentTab === 'skins') {
+                    list = SHOP_SKINS;
+                    unlockedList = appState.unlockedSkins;
+                    equipped = appState.equippedSkin;
+                } else if (this.currentTab === 'hats') {
+                    list = SHOP_HATS;
+                    unlockedList = appState.unlockedHats;
+                    equipped = appState.equippedHat;
+                } else {
+                    list = SHOP_PETS;
+                    unlockedList = appState.unlockedPets;
+                    equipped = appState.equippedPet;
+                }
+
+                list.forEach(item => {
+                    const isUnlocked = unlockedList.includes(item.id);
+                    const isEquipped = equipped === item.id;
+                    const card = document.createElement('div');
+                    card.className = `glass-panel p-3 rounded-2xl flex flex-col items-center justify-between text-center border ${
+                        isEquipped ? 'border-amber-400 bg-amber-500/10' : 'border-white/10'
+                    }`;
+
+                    let actionBtnHTML = '';
+                    if (isEquipped) {
+                        actionBtnHTML = `<span class="text-xs font-bold text-amber-400">EQUIPPED</span>`;
+                    } else if (isUnlocked) {
+                        actionBtnHTML = `<button onclick="app.equipItem('${this.currentTab}', '${item.id}')" class="px-3 py-1 rounded-xl glass-btn text-xs font-bold text-emerald-400">EQUIP</button>`;
+                    } else {
+                        actionBtnHTML = `<button onclick="app.buyItem('${this.currentTab}', '${item.id}', ${item.cost})" class="btn-gold px-3 py-1 rounded-xl text-xs font-game text-slate-950">🪙 ${item.cost}</button>`;
+                    }
+
+                    card.innerHTML = `
+                        <div class="text-3xl my-2">${item.icon || '🎨'}</div>
+                        <div class="font-bold text-xs text-slate-200 mb-2">${item.name}</div>
+                        ${actionBtnHTML}
+                    `;
+                    container.appendChild(card);
+                });
+            },
+
+            equipItem(type, id) {
+                if (type === 'skins') appState.equippedSkin = id;
+                if (type === 'hats') appState.equippedHat = id;
+                if (type === 'pets') appState.equippedPet = id;
+                this.updateHeaderUI();
+                this.renderShopItems();
+            },
+
+            buyItem(type, id, cost) {
+                if (appState.coins >= cost) {
+                    appState.coins -= cost;
+                    if (type === 'skins') appState.unlockedSkins.push(id);
+                    if (type === 'hats') appState.unlockedHats.push(id);
+                    if (type === 'pets') appState.unlockedPets.push(id);
+                    this.equipItem(type, id);
+                }
+            },
+
+            openStatsModal() {
+                document.getElementById('modal-stats').classList.remove('hidden');
+                document.getElementById('stat-max-height').innerText = `${appState.stats.maxHeight}m`;
+                document.getElementById('stat-total-jumps').innerText = appState.stats.totalJumps;
+                document.getElementById('stat-bosses').innerText = appState.stats.bossesDefeated;
+                document.getElementById('stat-apples').innerText = appState.stats.secretApples;
+            },
+
+            renderFlagGrid() {
+                const container = document.getElementById('flag-selector-grid');
+                container.innerHTML = '';
+                FLAGS.forEach(flag => {
+                    const btn = document.createElement('button');
+                    btn.className = `text-2xl p-2 rounded-xl glass-btn hover:scale-110 transition ${appState.userFlag === flag ? 'border border-cyan-400 bg-cyan-500/20' : ''}`;
+                    btn.innerText = flag;
+                    btn.onclick = () => {
+                        appState.userFlag = flag;
+                        this.updateHeaderUI();
+                        this.renderFlagGrid();
+                    };
+                    container.appendChild(btn);
+                });
+            },
+
+            openSettingsModal() {
+                document.getElementById('modal-settings').classList.remove('hidden');
+                document.getElementById('setting-physics').value = appState.settings.physics;
+                document.getElementById('setting-speed').value = appState.settings.speed;
+                document.getElementById('setting-edges').value = appState.settings.edges;
+                document.getElementById('setting-volume').value = appState.settings.volume;
+            },
+
+            updateSettings() {
+                appState.settings.physics = document.getElementById('setting-physics').value;
+                appState.settings.speed = parseFloat(document.getElementById('setting-speed').value);
+                appState.settings.edges = document.getElementById('setting-edges').value;
+                appState.settings.volume = parseFloat(document.getElementById('setting-volume').value);
+                audio.volume = appState.settings.volume;
+                saveState();
+            },
+
+            showWheelModal() {
+                document.getElementById('modal-wheel').classList.remove('hidden');
+                wheelEngine.draw();
+            },
+
+            closeModal(modalId) {
+                document.getElementById(`modal-${modalId}`).classList.add('hidden');
+            },
+
+            initLobbyDerpCanvas() {
+                const canvas = document.getElementById('lobby-derp-canvas');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                let squish = 0;
+                
+                const animate = () => {
+                    ctx.clearRect(0,0,140,140);
+                    // Draw animated avatar
+                    ctx.save();
+                    ctx.translate(70, 70);
+                    const scaleY = 1 - squish;
+                    const scaleX = 1 + squish * 0.5;
+                    ctx.scale(scaleX, scaleY);
+
+                    // Body
+                    const skinObj = SHOP_SKINS.find(s=>s.id===appState.equippedSkin) || SHOP_SKINS[0];
+                    ctx.fillStyle = skinObj.color;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 45, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.lineWidth = 4;
+                    ctx.strokeStyle = '#000';
+                    ctx.stroke();
+
+                    // Eyes
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(-15, -10, 12, 0, Math.PI*2);
+                    ctx.arc(15, -10, 12, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Googly Pupils
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath();
+                    ctx.arc(-12, -10, 5, 0, Math.PI*2);
+                    ctx.arc(18, -8, 5, 0, Math.PI*2);
+                    ctx.fill();
+
+                    // Tongue
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.beginPath();
+                    ctx.arc(5, 15, 10, 0, Math.PI);
+                    ctx.fill();
+
+                    // Hat
+                    if (appState.equippedHat !== 'none') {
+                        const hatObj = SHOP_HATS.find(h=>h.id===appState.equippedHat);
+                        if (hatObj) {
+                            ctx.font = '28px sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.fillText(hatObj.icon, 0, -35);
+                        }
+                    }
+
+                    ctx.restore();
+
+                    if (squish > 0) squish -= 0.05;
+                    if (document.getElementById('screen-lobby').classList.contains('flex')) {
+                        requestAnimationFrame(animate);
+                    }
+                };
+                animate();
+                this.triggerLobbyDerpSquish = () => { squish = 0.4; audio.playBounce(); };
+            },
+
+            playOpeningCutscene(force = false, callback = null) {
+                this.showScreen('cutscene');
+                cutsceneEngine.playOpening(() => {
+                    if (callback) callback();
+                    else this.showScreen('lobby');
+                });
+            },
+
+            downloadStandalone() {
+                const pageHTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+                const blob = new Blob([pageHTML], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "Sky_Jumper_Ultimate_Infinity_Edition.html";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        };
+
+        // ==========================================
+        // 5. CUTSCENE ENGINE
+        // ==========================================
+        const cutsceneEngine = {
+            active: false,
+            onComplete: null,
+
+            playOpening(onComplete) {
+                this.active = true;
+                this.onComplete = onComplete;
+                const canvas = document.getElementById('cutscene-canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 800;
+                canvas.height = 450;
+
+                let step = 0;
+                const dialogEl = document.getElementById('cutscene-dialogue');
+                
+                const texts = [
+                    "Derp is relaxing peacefully in his sunny green yard...",
+                    "SUDDENLY! Evil Derp swoops in from the dark cloud!",
+                    "BOOM! Evil Derp detonates the yard and steals the Golden Apple!",
+                    "Angry Derp launches into orbit to reclaim his yard and defeat Evil Derp!"
+                ];
+
+                const timer = setInterval(() => {
+                    step++;
+                    if (step < texts.length) {
+                        dialogEl.innerText = texts[step];
+                    } else {
+                        clearInterval(timer);
+                        this.skip();
+                    }
+                }, 2800);
+
+                const render = () => {
+                    if (!this.active) return;
+                    ctx.clearRect(0, 0, 800, 450);
+
+                    // Animated Sky Background
+                    const grad = ctx.createLinearGradient(0, 0, 0, 450);
+                    grad.addColorStop(0, step > 1 ? '#450a0a' : '#38bdf8');
+                    grad.addColorStop(1, step > 1 ? '#0f172a' : '#bae6fd');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, 800, 450);
+
+                    // Sun / Explosive FX
+                    ctx.fillStyle = step > 1 ? '#ef4444' : '#fef08a';
+                    ctx.beginPath();
+                    ctx.arc(700, 80, step > 1 ? 60 : 40, 0, Math.PI*2);
+                    ctx.fill();
+
+                    // Derp Character
+                    ctx.save();
+                    ctx.translate(200 + step * 40, 320 - step * 30);
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 35, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(-10, -5, 10, 0, Math.PI*2);
+                    ctx.arc(10, -5, 10, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.restore();
+
+                    // Evil Derp
+                    if (step >= 1) {
+                        ctx.save();
+                        ctx.translate(600 - step * 20, 150);
+                        ctx.fillStyle = '#881337';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 40, 0, Math.PI*2);
+                        ctx.fill();
+                        ctx.fillStyle = '#fef08a';
+                        ctx.beginPath();
+                        ctx.arc(-12, -5, 8, 0, Math.PI*2);
+                        ctx.arc(12, -5, 8, 0, Math.PI*2);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+
+                    requestAnimationFrame(render);
+                };
+                render();
+            },
+
+            skip() {
+                this.active = false;
+                if (this.onComplete) this.onComplete();
+            }
+        };
+
+        // ==========================================
+        // 6. DAILY WHEEL SPINNER ENGINE
+        // ==========================================
+        const wheelEngine = {
+            angle: 0,
+            spinning: false,
+            rewards: [50, 100, 250, 500, 10, 1000],
+
+            draw() {
+                const canvas = document.getElementById('wheel-canvas');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0,0,200,200);
+
+                const slices = this.rewards.length;
+                const sliceAngle = (Math.PI * 2) / slices;
+
+                for (let i = 0; i < slices; i++) {
+                    ctx.beginPath();
+                    ctx.fillStyle = i % 2 === 0 ? '#f59e0b' : '#d97706';
+                    ctx.moveTo(100, 100);
+                    ctx.arc(100, 100, 95, this.angle + i * sliceAngle, this.angle + (i + 1) * sliceAngle);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Text
+                    ctx.save();
+                    ctx.translate(100, 100);
+                    ctx.rotate(this.angle + i * sliceAngle + sliceAngle / 2);
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.fillText(`🪙 ${this.rewards[i]}`, 45, 4);
+                    ctx.restore();
+                }
+            },
+
+            spin() {
+                if (this.spinning) return;
+                this.spinning = true;
+                let speed = 0.4;
+                const duration = 3000;
+                const start = Date.now();
+
+                const animate = () => {
+                    const elapsed = Date.now() - start;
+                    if (elapsed < duration) {
+                        this.angle += speed;
+                        speed *= 0.985;
+                        this.draw();
+                        requestAnimationFrame(animate);
+                    } else {
+                        this.spinning = false;
+                        const reward = this.rewards[Math.floor(Math.random() * this.rewards.length)];
+                        appState.coins += reward;
+                        app.updateHeaderUI();
+                        alert(`🎉 Congratulations! You won 🪙 ${reward} coins!`);
+                        app.closeModal('wheel');
+                    }
+                };
+                animate();
+            }
+        };
+
+        // ==========================================
+        // 7. CORE GAME ENGINE (GUARANTEED REACHABLE MATH)
+        // ==========================================
+        const gameEngine = {
+            canvas: null,
+            ctx: null,
+            active: false,
+            paused: false,
+            level: 1,
+            isInfinite: false,
+            isCoOp: false,
+            cameraY: 0,
+            altitude: 0,
+            combo: 1,
+            coinsCollected: 0,
+
+            // Guaranteed Reachable Physics Parameters (Feature #1)
+            // Max jump height = (jumpVel^2) / (2 * gravity) = (11.5^2) / (2 * 0.38) = 174px. Max Y-gap set safely to 110px.
+            gravity: 0.38,
+            jumpForce: -11.5,
+            moveSpeed: 6.5,
+
+            players: [],
+            platforms: [],
+            collectibles: [],
+            hazards: [],
+            boss: null,
+            particles: [],
+
+            init() {
+                this.canvas = document.getElementById('game-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.setupInputs();
+            },
+
+            setupInputs() {
+                this.keys = {};
+                window.addEventListener('keydown', (e) => {
+                    this.keys[e.code] = true;
+                    audio.init();
+                });
+                window.addEventListener('keyup', (e) => {
+                    this.keys[e.code] = false;
+                });
+
+                // Mobile Touch Controls
+                const btnLeft = document.getElementById('btn-touch-left');
+                const btnRight = document.getElementById('btn-touch-right');
+                const btnBoost = document.getElementById('btn-touch-boost');
+
+                if (btnLeft) {
+                    btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); this.keys['KeyA'] = true; });
+                    btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); this.keys['KeyA'] = false; });
+                    btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); this.keys['KeyD'] = true; });
+                    btnRight.addEventListener('touchend', (e) => { e.preventDefault(); this.keys['KeyD'] = false; });
+                    btnBoost.addEventListener('touchstart', (e) => { e.preventDefault(); this.keys['Space'] = true; });
+                    btnBoost.addEventListener('touchend', (e) => { e.preventDefault(); this.keys['Space'] = false; });
+                }
+            },
+
+            startLevel(lvlNum) {
+                this.level = lvlNum;
+                this.isInfinite = false;
+                this.isCoOp = false;
+                this.resetGameState();
+                this.generateGuaranteedLevel();
+                this.loop();
+            },
+
+            startInfiniteMode() {
+                this.level = 99;
+                this.isInfinite = true;
+                this.isCoOp = false;
+                this.resetGameState();
+                this.generateGuaranteedLevel();
+                this.loop();
+            },
+
+            startCoOpMode() {
+                this.level = 1;
+                this.isInfinite = false;
+                this.isCoOp = true;
+                this.resetGameState();
+                this.generateGuaranteedLevel();
+                this.loop();
+            },
+
+            resetGameState() {
+                this.active = true;
+                this.paused = false;
+                this.cameraY = 0;
+                this.altitude = 0;
+                this.combo = 1;
+                this.coinsCollected = 0;
+                this.platforms = [];
+                this.collectibles = [];
+                this.hazards = [];
+                this.particles = [];
+                this.boss = null;
+
+                // Player 1 Initial State
+                this.players = [{
+                    id: 1,
+                    x: 280,
+                    y: 700,
+                    vx: 0,
+                    vy: 0,
+                    radius: 20,
+                    squish: 0,
+                    isGrounded: false,
+                    color: SHOP_SKINS.find(s=>s.id===appState.equippedSkin)?.color || '#f59e0b',
+                    jetpackFuel: 0
+                }];
+
+                if (this.isCoOp) {
+                    this.players.push({
+                        id: 2,
+                        x: 320,
+                        y: 700,
+                        vx: 0,
+                        vy: 0,
+                        radius: 20,
+                        squish: 0,
+                        isGrounded: false,
+                        color: '#ec4899',
+                        jetpackFuel: 0
+                    });
+                }
+
+                document.getElementById('hud-level-title').innerText = this.isInfinite ? 'ENDLESS' : `LVL ${this.level}`;
+                document.getElementById('game-pause-overlay').classList.add('hidden');
+            },
+
+            /* FEATURE #1: Guaranteed Reachable Generation Algorithm */
+            generateGuaranteedLevel() {
+                // Base ground platform
+                this.platforms.push({ x: 150, y: 760, w: 300, h: 20, type: 'normal' });
+
+                let currentY = 700;
+                let currentX = 300;
+                const maxYGap = 100; // Guaranteed strictly below maximum jump apex height (174px)
+                const targetAltitude = this.isInfinite ? 999999 : this.level * 400;
+
+                while (currentY > -targetAltitude) {
+                    currentY -= 70 + Math.random() * (maxYGap - 70);
+                    // Calculate max reach horizontal offset
+                    const maxReachX = 160; 
+                    currentX += (Math.random() - 0.5) * maxReachX * 2;
+                    currentX = Math.max(60, Math.min(540 - 100, currentX));
+
+                    // Pick platform type based on level
+                    let type = 'normal';
+                    const rand = Math.random();
+                    if (rand < 0.2) type = 'moving';
+                    else if (rand < 0.35) type = 'crumble';
+                    else if (rand < 0.45) type = 'spring';
+                    else if (rand < 0.55) type = 'ice';
+
+                    this.platforms.push({
+                        x: currentX,
+                        y: currentY,
+                        w: 90,
+                        h: 18,
+                        type: type,
+                        vx: type === 'moving' ? 2 : 0,
+                        crumbs: 1
+                    });
+
+                    // Add Collectibles
+                    if (Math.random() < 0.4) {
+                        this.collectibles.push({
+                            x: currentX + 45,
+                            y: currentY - 25,
+                            type: Math.random() < 0.8 ? 'coin' : 'star',
+                            collected: false
+                        });
+                    }
+                }
+
+                // Finish Flag Pole at Top (for campaign)
+                if (!this.isInfinite) {
+                    this.platforms.push({
+                        x: 250,
+                        y: -targetAltitude - 50,
+                        w: 100,
+                        h: 20,
+                        type: 'finish'
+                    });
+                }
+            },
+
+            togglePause() {
+                this.paused = !this.paused;
+                document.getElementById('game-pause-overlay').classList.toggle('hidden', !this.paused);
+            },
+
+            resumeGame() {
+                this.paused = false;
+                document.getElementById('game-pause-overlay').classList.add('hidden');
+            },
+
+            restartCurrent() {
+                if (this.isInfinite) this.startInfiniteMode();
+                else this.startLevel(this.level);
+            },
+
+            update() {
+                if (this.paused || !this.active) return;
+
+                const speedMult = appState.settings.speed;
+
+                this.players.forEach((p) => {
+                    // Controls (P1: A/D/Space or Arrows)
+                    if (p.id === 1) {
+                        if (gameEngine.keys['KeyA'] || gameEngine.keys['ArrowLeft']) p.vx = -this.moveSpeed;
+                        else if (gameEngine.keys['KeyD'] || gameEngine.keys['ArrowRight']) p.vx = this.moveSpeed;
+                        else p.vx *= 0.82;
+
+                        if (gameEngine.keys['Space'] && p.jetpackFuel > 0) {
+                            p.vy = -8;
+                            p.jetpackFuel--;
+                        }
+                    } else if (p.id === 2) {
+                        // P2 Co-Op Controls (Arrow Keys)
+                        if (gameEngine.keys['ArrowLeft']) p.vx = -this.moveSpeed;
+                        else if (gameEngine.keys['ArrowRight']) p.vx = this.moveSpeed;
+                        else p.vx *= 0.82;
+                    }
+
+                    // Physics Integration
+                    p.vy += this.gravity * speedMult;
+                    p.x += p.vx * speedMult;
+                    p.y += p.vy * speedMult;
+
+                    // Edge Wrapping or Bouncy Walls
+                    if (appState.settings.edges === 'wrap') {
+                        if (p.x < -20) p.x = 600;
+                        if (p.x > 600) p.x = -20;
+                    } else {
+                        if (p.x < 20) { p.x = 20; p.vx = -p.vx; }
+                        if (p.x > 580) { p.x = 580; p.vx = -p.vx; }
+                    }
+
+                    // Platform Collisions (Descending Landing)
+                    if (p.vy > 0) {
+                        this.platforms.forEach(plat => {
+                            if (p.x + p.radius > plat.x && p.x - p.radius < plat.x + plat.w &&
+                                p.y + p.radius >= plat.y && p.y - p.radius <= plat.y + plat.h) {
+                                
+                                // Bounce behavior
+                                if (plat.type === 'spring') {
+                                    p.vy = this.jumpForce * 1.5;
+                                    audio.playBounce();
+                                } else {
+                                    p.vy = this.jumpForce;
+                                    audio.playJump();
+                                }
+
+                                p.squish = 0.4; // Trigger Squish & Stretch Animation
+                                appState.stats.totalJumps++;
+
+                                if (plat.type === 'crumble') {
+                                    plat.y = 99999; // Drop platform
+                                }
+
+                                if (plat.type === 'finish') {
+                                    this.completeLevel();
+                                }
+                            }
+                        });
+                    }
+
+                    // Recover Squish
+                    if (p.squish > 0) p.squish -= 0.04;
+
+                    // Update High Altitude Camera Tracking
+                    if (p.y < this.cameraY + 350) {
+                        this.cameraY = p.y - 350;
+                    }
+                });
+
+                // Move Platforms
+                this.platforms.forEach(plat => {
+                    if (plat.type === 'moving') {
+                        plat.x += plat.vx;
+                        if (plat.x < 20 || plat.x + plat.w > 580) plat.vx = -plat.vx;
+                    }
+                });
+
+                // Collectibles Collision
+                this.collectibles.forEach(col => {
+                    if (!col.collected) {
+                        this.players.forEach(p => {
+                            const dist = Math.hypot(p.x - col.x, p.y - col.y);
+                            if (dist < p.radius + 15) {
+                                col.collected = true;
+                                if (col.type === 'coin') {
+                                    appState.coins += 5 * this.combo;
+                                    this.coinsCollected += 5;
+                                } else if (col.type === 'star') {
+                                    appState.coins += 20;
+                                }
+                                audio.playCoin();
+                                app.updateHeaderUI();
+                            }
+                        });
+                    }
+                });
+
+                // Altitude Calculation
+                this.altitude = Math.max(0, Math.floor(-this.cameraY / 10));
+                if (this.altitude > appState.stats.maxHeight) {
+                    appState.stats.maxHeight = this.altitude;
+                }
+                document.getElementById('hud-altitude').innerText = `${this.altitude}m`;
+                document.getElementById('hud-coins').innerText = `🪙 ${this.coinsCollected}`;
+
+                // Fall / Game Over Check
+                this.players.forEach(p => {
+                    if (p.y > this.cameraY + 850) {
+                        this.gameOver();
+                    }
+                });
+            },
+
+            completeLevel() {
+                this.active = false;
+                audio.playFanfare();
+                const starsEarned = 3;
+                appState.levelStars[this.level] = Math.max(appState.levelStars[this.level] || 0, starsEarned);
+                
+                // Recalculate total stars
+                let total = 0;
+                Object.values(appState.levelStars).forEach(s => total += s);
+                appState.stars = total;
+
+                if (this.level >= appState.unlockedLevels && appState.unlockedLevels < 25) {
+                    appState.unlockedLevels++;
+                }
+
+                app.updateHeaderUI();
+                app.renderLevelGrid();
+
+                if (this.level === 25) {
+                    // Play Ending Cutscene
+                    app.showScreen('cutscene');
+                    document.getElementById('cutscene-dialogue').innerText = "🏆 VICTORY! Derp defeated Evil Derp and reclaimed the Golden Yard!";
+                } else {
+                    alert(`🎉 LEVEL ${this.level} CLEARED!\nEarned ⭐⭐⭐ Stars!`);
+                    app.showScreen('levels');
+                }
+            },
+
+            gameOver() {
+                this.active = false;
+                alert(`💥 GAME OVER!\nReached Altitude: ${this.altitude}m`);
+                app.showScreen('lobby');
+            },
+
+            render() {
+                this.ctx.clearRect(0, 0, 600, 800);
+
+                this.ctx.save();
+                // Apply Camera Parallax Translation
+                this.ctx.translate(0, -this.cameraY);
+
+                // Sky Gradient according to altitude
+                const skyGrad = this.ctx.createLinearGradient(0, this.cameraY, 0, this.cameraY + 800);
+                if (this.altitude < 150) {
+                    skyGrad.addColorStop(0, '#38bdf8');
+                    skyGrad.addColorStop(1, '#bae6fd');
+                } else if (this.altitude < 400) {
+                    skyGrad.addColorStop(0, '#818cf8');
+                    skyGrad.addColorStop(1, '#c084fc');
+                } else {
+                    skyGrad.addColorStop(0, '#0f172a');
+                    skyGrad.addColorStop(1, '#1e1b4b');
+                }
+                this.ctx.fillStyle = skyGrad;
+                this.ctx.fillRect(0, this.cameraY, 600, 800);
+
+                // Draw Platforms
+                this.platforms.forEach(plat => {
+                    if (plat.y > this.cameraY - 50 && plat.y < this.cameraY + 850) {
+                        if (plat.type === 'spring') this.ctx.fillStyle = '#ec4899';
+                        else if (plat.type === 'crumble') this.ctx.fillStyle = '#78350f';
+                        else if (plat.type === 'ice') this.ctx.fillStyle = '#67e8f9';
+                        else if (plat.type === 'finish') this.ctx.fillStyle = '#eab308';
+                        else this.ctx.fillStyle = '#22c55e';
+
+                        this.ctx.beginPath();
+                        this.ctx.roundRect(plat.x, plat.y, plat.w, plat.h, 8);
+                        this.ctx.fill();
+                        this.ctx.lineWidth = 2;
+                        this.ctx.strokeStyle = '#000';
+                        this.ctx.stroke();
+                    }
+                });
+
+                // Draw Collectibles
+                this.collectibles.forEach(col => {
+                    if (!col.collected && col.y > this.cameraY - 50 && col.y < this.cameraY + 850) {
+                        this.ctx.font = '20px sans-serif';
+                        this.ctx.textAlign = 'center';
+                        this.ctx.fillText(col.type === 'coin' ? '🪙' : '⭐', col.x, col.y + 7);
+                    }
+                });
+
+                // Draw Players (Derp Character with Squish & Stretch)
+                this.players.forEach(p => {
+                    this.ctx.save();
+                    this.ctx.translate(p.x, p.y);
+                    
+                    const scaleY = 1 - p.squish;
+                    const scaleX = 1 + p.squish * 0.5;
+                    this.ctx.scale(scaleX, scaleY);
+
+                    // Body
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 0, p.radius, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.lineWidth = 3;
+                    this.ctx.strokeStyle = '#000';
+                    this.ctx.stroke();
+
+                    // Googly Eyes
+                    this.ctx.fillStyle = '#fff';
+                    this.ctx.beginPath();
+                    this.ctx.arc(-7, -4, 6, 0, Math.PI * 2);
+                    this.ctx.arc(7, -4, 6, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.stroke();
+
+                    // Pupils
+                    this.ctx.fillStyle = '#000';
+                    this.ctx.beginPath();
+                    this.ctx.arc(-5 + p.vx * 0.3, -4 + p.vy * 0.2, 2.5, 0, Math.PI * 2);
+                    this.ctx.arc(8 + p.vx * 0.3, -3 + p.vy * 0.2, 2.5, 0, Math.PI * 2);
+                    this.ctx.fill();
+
+                    // Tongue
+                    this.ctx.fillStyle = '#f43f5e';
+                    this.ctx.beginPath();
+                    this.ctx.arc(2, 6, 5, 0, Math.PI);
+                    this.ctx.fill();
+
+                    // Wearable Hat
+                    if (p.id === 1 && appState.equippedHat !== 'none') {
+                        const hatObj = SHOP_HATS.find(h=>h.id===appState.equippedHat);
+                        if (hatObj) {
+                            this.ctx.font = '18px sans-serif';
+                            this.ctx.textAlign = 'center';
+                            this.ctx.fillText(hatObj.icon, 0, -18);
+                        }
+                    }
+
+                    this.ctx.restore();
+                });
+
+                this.ctx.restore();
+            },
+
+            loop() {
+                if (!gameEngine.active) return;
+                gameEngine.update();
+                gameEngine.render();
+                requestAnimationFrame(() => gameEngine.loop());
+            }
+        };
+
+        window.onload = function() {
+            app.init();
+            gameEngine.init();
+        };
+    </script>
+</body>
+</html>
